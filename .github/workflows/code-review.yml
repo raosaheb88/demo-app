@@ -9,4 +9,7 @@ jobs:
 
     steps:
       - name: Test
-        run: echo "Hello"
+        shell: pwsh
+        run: |
+          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+          echo "Hello"
