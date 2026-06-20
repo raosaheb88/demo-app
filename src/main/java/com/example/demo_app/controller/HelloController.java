@@ -6,16 +6,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class HelloController {
 
-    private String username = "RD5710";
-    private String password = "rd12345";
+    private static String serverName = "rd-784-415";
     
     @GetMapping("/hello")
     public String sayHello() {
-        System.out.println("HelloController: sayHello() called");
-        System.out.println("Username: " + username);
-        System.out.println("Password: " + password);
-        System.out.println("HelloController: sayHello() finished");
-        System.out.println("HelloController: sayHello() finished:::::::");
+        System.out.println("Received request on server: " + serverName);
         return "Hello, World!";
     }
 
