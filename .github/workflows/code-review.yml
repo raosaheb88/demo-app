@@ -15,6 +15,6 @@ jobs:
           curl -X POST http://localhost:8081/api/review \
             -H "Content-Type: application/json" \
             -d '{
-                  "repo":"${{ github.repository }}",
-                  "branch":"${{ github.ref_name }}"
+                  "appName":"${{ github.repository }}",
+                  "branchName":"${{ github.ref_name }}"
                 }'
