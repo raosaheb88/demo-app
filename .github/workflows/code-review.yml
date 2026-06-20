@@ -8,9 +8,13 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Trigger Code Review Application
+      - name: Trigger Code Review
         run: |
-          curl http://localhost:8081/api/review
+          curl -X POST http://localhost:8081/api/review \
+            -H "Content-Type: application/json" \
+            -d '{
+                  "repo":"${{ github.repository }}",
+                  "branch":"${{ github.ref_name }}"
+                }'
