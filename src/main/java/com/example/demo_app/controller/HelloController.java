@@ -9,7 +9,7 @@ import java.util.TimeZone;
 public class HelloController {
     
     @GetMapping("/hello")
-    public String sayHello(TimeZone timeZone) {
+    public String sayHello() {
         return "Hello, World!";
     }
 
