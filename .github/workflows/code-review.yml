@@ -8,7 +8,8 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Test
+      - uses: actions/checkout@v4
+
+      - name: Code Review
         run: |
-          Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
-          echo "Hello"
+          echo "Code Review Started"
