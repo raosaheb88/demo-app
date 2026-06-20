@@ -14,6 +14,7 @@ public class HelloController {
         System.out.println("HelloController: sayHello() called");
         System.out.println("Username: " + username);
         System.out.println("Password: " + password);
+        System.out.println("HelloController: sayHello() finished");
         return "Hello, World!";
     }
 
