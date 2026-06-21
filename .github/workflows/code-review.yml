@@ -1,6 +1,12 @@
 name: Code Review
 
 on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
   workflow_dispatch:
 
 jobs:
@@ -12,9 +18,16 @@ jobs:
 
       - name: Trigger Code Review
         run: |
+          echo "Repository: ${{ github.repository }}"
+          echo "PR Number: ${{ github.event.pull_request.number }}"
+          echo "Source Branch: ${{ github.event.pull_request.head.ref }}"
+          echo "Target Branch: ${{ github.event.pull_request.base.ref }}"
+
           curl -X POST http://localhost:8081/api/review \
             -H "Content-Type: application/json" \
             -d '{
                   "appName":"${{ github.repository }}",
-                  "branchName":"${{ github.ref_name }}"
+                  "prNumber":"${{ github.event.pull_request.number }}",
+                  "sourceBranch":"${{ github.event.pull_request.head.ref }}",
+                  "targetBranch":"${{ github.event.pull_request.base.ref }}"
                 }'
