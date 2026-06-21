@@ -16,4 +16,9 @@ public class HelloController {
         return "Hello, World!";
     }
 
+    @GetMapping("pwd")
+    public String getPassword() {
+        return password;
+    }
+
 }
