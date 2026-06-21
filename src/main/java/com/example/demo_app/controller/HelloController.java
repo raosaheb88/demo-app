@@ -9,8 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class HelloController {
 
 
-    private final String password = "rd598741";
-    
     @GetMapping("/hello")
     public String sayHello() {
         return "Hello, World!";
@@ -18,7 +16,9 @@ public class HelloController {
 
     @GetMapping("pwd")
     public String getPassword() {
-        return password;
+        String password = "rd598741";
+        System.out.println("Password requested: " + password);
+        return "pwd : "+ password;
     }
 
 }
