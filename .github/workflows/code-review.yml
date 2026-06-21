@@ -22,4 +22,3 @@ steps:
           "prNumber": ${{ github.event.pull_request.number }},
           "jiraId": "${{ github.event.pull_request.head.ref }}"
         }'
-  ```
