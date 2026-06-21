@@ -36,4 +36,4 @@ jobs:
           echo "Repo: $REPO"
           echo "PR Number: $PR_NUMBER"
 
-          curl -X GET "http://localhost:8080/api/github/pr/files?owner=$OWNER&repo=$REPO&prNumber=$PR_NUMBER"
+          curl -X GET "http://localhost:8081/api/github/pr/files?owner=$OWNER&repo=$REPO&prNumber=$PR_NUMBER"
