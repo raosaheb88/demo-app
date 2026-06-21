@@ -8,6 +8,11 @@ on:
       - reopened
 
   workflow_dispatch:
+    inputs:
+      prNumber:
+        description: "PR Number"
+        required: true
+        default: "1"
 
 jobs:
   review:
@@ -18,16 +23,26 @@ jobs:
 
       - name: Trigger Code Review
         run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+          else
+            PR_NUMBER="${{ github.event.inputs.prNumber }}"
+            SOURCE_BRANCH="${{ github.ref_name }}"
+            TARGET_BRANCH="main"
+          fi
+
           echo "Repository: ${{ github.repository }}"
-          echo "PR Number: ${{ github.event.pull_request.number }}"
-          echo "Source Branch: ${{ github.event.pull_request.head.ref }}"
-          echo "Target Branch: ${{ github.event.pull_request.base.ref }}"
+          echo "PR Number: $PR_NUMBER"
+          echo "Source Branch: $SOURCE_BRANCH"
+          echo "Target Branch: $TARGET_BRANCH"
 
           curl -X POST http://localhost:8081/api/review \
             -H "Content-Type: application/json" \
-            -d '{
-                  "appName":"${{ github.repository }}",
-                  "prNumber":"${{ github.event.pull_request.number }}",
-                  "sourceBranch":"${{ github.event.pull_request.head.ref }}",
-                  "targetBranch":"${{ github.event.pull_request.base.ref }}"
-                }'
+            -d "{
+                  \"appName\":\"${{ github.repository }}\",
+                  \"prNumber\":\"$PR_NUMBER\",
+                  \"sourceBranch\":\"$SOURCE_BRANCH\",
+                  \"targetBranch\":\"$TARGET_BRANCH\"
+                }"
