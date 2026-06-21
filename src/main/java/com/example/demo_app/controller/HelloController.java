@@ -21,4 +21,11 @@ public class HelloController {
         return password;
     }
 
+    @GetMapping("/current-dir")
+    public String getCurrentDirectory() {
+        String currentDir = System.getProperty("user.dir");
+        System.out.println("Current Directory: " + currentDir);
+        return currentDir;
+    }
+
 }
