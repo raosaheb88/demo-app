@@ -7,26 +7,23 @@ on:
       - synchronize
       - reopened
 
+  workflow_dispatch:
+
 jobs:
   code-review:
     runs-on: self-hosted
+
     steps:
       - uses: actions/checkout@v4
 
       - name: Trigger Code Review API
         shell: bash
         run: |
-          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
-
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
           JIRA_ID=$(echo "$SOURCE_BRANCH" | sed 's#feature/##' | sed 's#bugfix/##')
 
           REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-
-          echo "Repository URL : $REPO_URL"
-          echo "PR Number      : $PR_NUMBER"
-          echo "Source Branch  : $SOURCE_BRANCH"
-          echo "Jira ID        : $JIRA_ID"
+          PR_NUMBER="${{ github.event.pull_request.number || 3 }}"
 
           curl -X POST "http://localhost:8080/api/review" \
             -H "Content-Type: application/json" \
@@ -35,4 +32,3 @@ jobs:
                   \"prNumber\":$PR_NUMBER,
                   \"jiraId\":\"$JIRA_ID\"
                 }"
-
