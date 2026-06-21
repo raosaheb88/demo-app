@@ -1,7 +1,18 @@
 name: Code Review
 
 on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
   workflow_dispatch:
+    inputs:
+      prNumber:
+        description: "PR Number"
+        required: true
+        default: "1"
 
 jobs:
   review:
@@ -10,11 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trigger Code Review
+      - name: Get PR Code Changes
         run: |
-          curl -X POST http://localhost:8081/api/review \
-            -H "Content-Type: application/json" \
-            -d '{
-                  "appName":"${{ github.repository }}",
-                  "branchName":"${{ github.ref_name }}"
-                }'
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+          else
+            PR_NUMBER="${{ github.event.inputs.prNumber }}"
+          fi
+
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+
+          echo "Owner: $OWNER"
+          echo "Repo: $REPO"
+          echo "PR Number: $PR_NUMBER"
+
+          curl -X GET "http://localhost:8081/api/github/pr/files?owner=$OWNER&repo=$REPO&prNumber=$PR_NUMBER"
