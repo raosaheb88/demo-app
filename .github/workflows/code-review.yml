@@ -21,28 +21,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Trigger Code Review
+      - name: Get PR Code Changes
         run: |
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             PR_NUMBER="${{ github.event.pull_request.number }}"
-            SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
-            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
           else
             PR_NUMBER="${{ github.event.inputs.prNumber }}"
-            SOURCE_BRANCH="${{ github.ref_name }}"
-            TARGET_BRANCH="main"
           fi
 
-          echo "Repository: ${{ github.repository }}"
-          echo "PR Number: $PR_NUMBER"
-          echo "Source Branch: $SOURCE_BRANCH"
-          echo "Target Branch: $TARGET_BRANCH"
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
 
-          curl -X POST http://localhost:8081/api/review \
-            -H "Content-Type: application/json" \
-            -d "{
-                  \"appName\":\"${{ github.repository }}\",
-                  \"prNumber\":\"$PR_NUMBER\",
-                  \"sourceBranch\":\"$SOURCE_BRANCH\",
-                  \"targetBranch\":\"$TARGET_BRANCH\"
-                }"
+          echo "Owner: $OWNER"
+          echo "Repo: $REPO"
+          echo "PR Number: $PR_NUMBER"
+
+          curl -X GET "http://localhost:8080/api/github/pr/files?owner=$OWNER&repo=$REPO&prNumber=$PR_NUMBER"
