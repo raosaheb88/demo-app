@@ -8,32 +8,27 @@ on:
       - reopened
 
   workflow_dispatch:
-    inputs:
-      prNumber:
-        description: "PR Number"
-        required: true
-        default: "1"
 
 jobs:
-  review:
+  code-review:
     runs-on: self-hosted
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get PR Code Changes
+      - name: Trigger Code Review API
+        shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-          else
-            PR_NUMBER="${{ github.event.inputs.prNumber }}"
-          fi
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
+          JIRA_ID=$(echo "$SOURCE_BRANCH" | sed 's#feature/##' | sed 's#bugfix/##')
 
-          OWNER="${{ github.repository_owner }}"
-          REPO="${{ github.event.repository.name }}"
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+          PR_NUMBER="${{ github.event.pull_request.number || 3 }}"
 
-          echo "Owner: $OWNER"
-          echo "Repo: $REPO"
-          echo "PR Number: $PR_NUMBER"
-
-          curl -X GET "http://localhost:8081/api/github/pr/files?owner=$OWNER&repo=$REPO&prNumber=$PR_NUMBER"
+          curl -X POST "http://localhost:8080/api/review" \
+            -H "Content-Type: application/json" \
+            -d "{
+                  \"repoUrl\":\"$REPO_URL\",
+                  \"prNumber\":$PR_NUMBER,
+                  \"jiraId\":\"$JIRA_ID\"
+                }"
