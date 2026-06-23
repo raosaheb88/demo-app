@@ -1,37 +1,35 @@
 name: Code Review
 
 on:
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
+pull_request:
+types:
+- opened
+- synchronize
+- reopened
 
 jobs:
-  code-review:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
+code-review:
+runs-on: self-hosted
 
-      - name: Trigger Code Review API
-        shell: bash
-        run: |
-          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+```
+steps:
+  - uses: actions/checkout@v4
 
-          JIRA_ID=$(echo "$SOURCE_BRANCH" | sed 's#feature/##' | sed 's#bugfix/##')
+  - name: Trigger Code Review API
+    shell: bash
+    run: |
+      REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+      PR_NUMBER="${{ github.event.pull_request.number }}"
 
-          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
+      echo "Repository URL : $REPO_URL"
+      echo "PR Number      : $PR_NUMBER"
+      echo "Jira ID        : RD-3"
 
-          echo "Repository URL : $REPO_URL"
-          echo "PR Number      : $PR_NUMBER"
-          echo "Source Branch  : $SOURCE_BRANCH"
-          echo "Jira ID        : $JIRA_ID"
-
-          curl -X POST "http://localhost:8080/api/review" \
-            -H "Content-Type: application/json" \
-            -d "{
-                  \"repoUrl\":\"$REPO_URL\",
-                  \"prNumber\":$PR_NUMBER,
-                  \"jiraId\":\"$JIRA_ID\"
-                }"
+      curl -X POST "http://localhost:8080/api/review" \
+        -H "Content-Type: application/json" \
+        -d "{
+              \"repoUrl\":\"$REPO_URL\",
+              \"prNumber\":$PR_NUMBER,
+              \"jiraId\":\"RD-3\"
+            }"
+```
