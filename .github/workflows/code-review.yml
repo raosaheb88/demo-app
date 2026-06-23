@@ -20,10 +20,21 @@ jobs:
         shell: bash
         run: |
           SOURCE_BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
-          JIRA_ID=$(echo "$SOURCE_BRANCH" | sed 's#feature/##' | sed 's#bugfix/##')
+          PR_TITLE="${{ github.event.pull_request.title || '' }}"
+          PR_BODY="${{ github.event.pull_request.body || '' }}"
+
+          JIRA_ID=$(echo "$PR_TITLE $PR_BODY" | grep -oE 'RD-[0-9]+' | head -1)
+
+          if [ -z "$JIRA_ID" ]; then
+            JIRA_ID=$(echo "$SOURCE_BRANCH" | grep -oE 'RD-[0-9]+' | head -1)
+          fi
 
           REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
           PR_NUMBER="${{ github.event.pull_request.number || 3 }}"
+
+          echo "SOURCE_BRANCH=$SOURCE_BRANCH"
+          echo "JIRA_ID=$JIRA_ID"
+          echo "PR_NUMBER=$PR_NUMBER"
 
           curl -X POST "http://localhost:8080/api/review" \
             -H "Content-Type: application/json" \
