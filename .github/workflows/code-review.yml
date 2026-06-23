@@ -1,35 +1,37 @@
 name: Code Review
 
 on:
-pull_request:
-types:
-- opened
-- synchronize
-- reopened
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 jobs:
-code-review:
-runs-on: self-hosted
+  code-review:
+    runs-on: self-hosted
 
-```
-steps:
-  - uses: actions/checkout@v4
+    steps:
+      - uses: actions/checkout@v4
 
-  - name: Trigger Code Review API
-    shell: bash
-    run: |
-      REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-      PR_NUMBER="${{ github.event.pull_request.number }}"
+      - name: Trigger Code Review API
+        shell: bash
+        run: |
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          JIRA_ID="RD-3"
 
-      echo "Repository URL : $REPO_URL"
-      echo "PR Number      : $PR_NUMBER"
-      echo "Jira ID        : RD-3"
+          cat > request.json <<EOF
+          {
+            "repoUrl": "$REPO_URL",
+            "prNumber": $PR_NUMBER,
+            "jiraId": "$JIRA_ID"
+          }
+          EOF
 
-      curl -X POST "http://localhost:8080/api/review" \
-        -H "Content-Type: application/json" \
-        -d "{
-              \"repoUrl\":\"$REPO_URL\",
-              \"prNumber\":$PR_NUMBER,
-              \"jiraId\":\"RD-3\"
-            }"
-```
+          echo "Request Payload:"
+          cat request.json
+
+          curl -X POST "http://localhost:8080/api/review" \
+            -H "Content-Type: application/json" \
+            -d @request.json
