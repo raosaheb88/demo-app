@@ -20,7 +20,6 @@ jobs:
         shell: bash
         run: |
           SOURCE_BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
-          TARGET_BRANCH="${{ github.event.pull_request.base.ref || 'main' }}"
           JIRA_ID=$(echo "$SOURCE_BRANCH" | sed 's#feature/##' | sed 's#bugfix/##')
 
           REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
@@ -32,16 +31,4 @@ jobs:
                   \"repoUrl\":\"$REPO_URL\",
                   \"prNumber\":$PR_NUMBER,
                   \"jiraId\":\"$JIRA_ID\"
-                }" \
-            -o review-response.json
-
-      - name: Add PR Review Report Link
-        shell: bash
-        run: |
-          PR_NUMBER="${{ github.event.pull_request.number || 3 }}"
-
-          echo "## PR Review Report" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Code review completed successfully." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "[Open PR Review Report](http://localhost:8080/review-report/$PR_NUMBER)" >> $GITHUB_STEP_SUMMARY
+                }"
