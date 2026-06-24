@@ -19,16 +19,23 @@ jobs:
       - name: Trigger Code Review API
         shell: bash
         run: |
-          SOURCE_BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
-          JIRA_ID=$(echo "$SOURCE_BRANCH" | sed 's#feature/##' | sed 's#bugfix/##')
-
           REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-          PR_NUMBER="${{ github.event.pull_request.number || 3 }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+
+          JIRA_ID=$(echo "$SOURCE_BRANCH" | grep -oE 'RD-[0-9]+' | head -1)
+
+          cat > request.json <<EOF
+          {
+            "repoUrl": "$REPO_URL",
+            "prNumber": $PR_NUMBER,
+            "jiraId": "$JIRA_ID"
+          }
+          EOF
+
+          echo "Request Payload:"
+          cat request.json
 
           curl -X POST "http://localhost:8080/api/review" \
             -H "Content-Type: application/json" \
-            -d "{
-                  \"repoUrl\":\"$REPO_URL\",
-                  \"prNumber\":$PR_NUMBER,
-                  \"jiraId\":\"$JIRA_ID\"
-                }"
+            -d @request.json
