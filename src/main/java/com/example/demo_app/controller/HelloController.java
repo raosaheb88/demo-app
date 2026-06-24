@@ -4,6 +4,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 @RestController
 @RequestMapping("/api")
 public class HelloController {
@@ -26,6 +29,13 @@ public class HelloController {
         String currentDir = System.getProperty("user.dir");
         System.out.println("Current Directory: " + currentDir);
         return currentDir;
+    }
+
+    @GetMapping("/getTime")
+    public String getCurrentTime() {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+        System.out.println("sdf: " + sdf.format(new Date()));
+        return sdf.format(new Date());
     }
 
 }
