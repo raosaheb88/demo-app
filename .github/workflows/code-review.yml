@@ -45,7 +45,7 @@ jobs:
           echo "========== REQUEST =========="
           cat request.json
 
-          curl -X POST "http://localhost:8080/api/review" \
+          curl -X POST "http://13.235.113.136:8080/api/review" \
             -H "Content-Type: application/json" \
             -d @request.json \
             -o review-response.json
