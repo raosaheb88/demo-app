@@ -1,21 +1,38 @@
-name: EC2 IP Test
+name: Code Review
 
 on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
-  test-ec2:
-    runs-on: ubuntu-latest
+  code-review:
+    runs-on: self-hosted
 
     steps:
-      - name: Test EC2 Connection
-        run: |
-          echo "Testing EC2 IP and port..."
+      - uses: actions/checkout@v4
 
-          curl -v \
-            --connect-timeout 10 \
-            --max-time 20 \
-            http://13.235.113.136:8080/api/review
+      - name: Trigger Code Review API
+        shell: bash
+        run: |
+          REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
+
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER=0
+          fi
+
+          SOURCE_BRANCH="${{ github.event.pull_request.head.ref || github.ref_name }}"
+          JIRA_ID=$(echo "$SOURCE_BRANCH" | grep -oE 'RD-[0-9]+' | head -1)
 
           cat > request.json <<EOF
           {
@@ -36,3 +53,49 @@ jobs:
           echo "========== RESPONSE =========="
           cat review-response.json
 
+      - name: Publish Report To Summary
+        shell: bash
+        run: |
+          echo "# 🤖 AI Code Review Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Request" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat request.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Response" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat review-response.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Add Review Comment To PR
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const request = fs.readFileSync('request.json', 'utf8');
+            const response = fs.readFileSync('review-response.json', 'utf8');
+
+            const body =
+              "## 🤖 AI Code Review Report\n\n" +
+              "### Request Payload\n" +
+              "```json\n" +
+              request +
+              "\n```\n\n" +
+              "### Review Response\n" +
+              "```json\n" +
+              response +
+              "\n```\n\n" +
+              "✅ Code review completed successfully.";
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
