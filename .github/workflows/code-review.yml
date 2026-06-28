@@ -16,3 +16,23 @@ jobs:
             --connect-timeout 10 \
             --max-time 20 \
             http://13.235.113.136:8080/api/review
+
+          cat > request.json <<EOF
+          {
+            "repoUrl": "$REPO_URL",
+            "prNumber": $PR_NUMBER,
+            "jiraId": "$JIRA_ID"
+          }
+          EOF
+
+          echo "========== REQUEST =========="
+          cat request.json
+
+          curl -X POST "http://13.235.113.136:8080/api/review" \
+            -H "Content-Type: application/json" \
+            -d @request.json \
+            -o review-response.json
+
+          echo "========== RESPONSE =========="
+          cat review-response.json
+
