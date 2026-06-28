@@ -51,12 +51,6 @@ jobs:
           echo "========== REQUEST =========="
           cat request.json
 
-          echo "========== TEST EC2 CONNECTION =========="
-          curl -v \
-            --connect-timeout 10 \
-            --max-time 20 \
-            http://65.0.72.161:8080/actuator/health
-
           echo "========== CALL CODE REVIEW API =========="
           curl -v \
             --fail-with-body \
