@@ -56,7 +56,7 @@ jobs:
             --fail-with-body \
             --connect-timeout 10 \
             --max-time 120 \
-            -X POST "http://13.235.113.136:8080/api/review" \
+            -X POST "http://15.206.158.44:8080/api/review" \
             -H "Content-Type: application/json" \
             -d @request.json \
             -o review-response.json
