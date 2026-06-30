@@ -9,21 +9,62 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   code-review:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Trigger Code Review API
         shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           REPO_URL="${{ github.server_url }}/${{ github.repository }}.git"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+          OWNER="${{ github.repository_owner }}"
+          REPO_NAME="${{ github.event.repository.name }}"
+
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "Running from pull_request event"
+
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            SOURCE_BRANCH="${{ github.event.pull_request.head.ref }}"
+            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+
+          else
+            echo "Running from manual workflow_dispatch event"
+
+            SOURCE_BRANCH="${{ github.ref_name }}"
+            TARGET_BRANCH="main"
+
+            echo "Finding open PR for branch: $SOURCE_BRANCH"
+
+            PR_NUMBER=$(curl -s \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/repos/$OWNER/$REPO_NAME/pulls?state=open&head=$OWNER:$SOURCE_BRANCH&base=$TARGET_BRANCH" \
+              | jq -r '.[0].number // empty')
+
+            if [ -z "$PR_NUMBER" ]; then
+              echo "ERROR: No open PR found for branch: $SOURCE_BRANCH"
+              echo "Please run manual workflow from PR source branch, not main branch."
+              exit 1
+            fi
+          fi
 
           JIRA_ID=$(echo "$SOURCE_BRANCH" | grep -oE 'RD-[0-9]+' | head -1)
+
+          if [ -z "$JIRA_ID" ]; then
+            echo "ERROR: Jira ID not found in branch name: $SOURCE_BRANCH"
+            echo "Branch name should be like feature/RD-4"
+            exit 1
+          fi
 
           cat > request.json <<EOF
           {
@@ -33,9 +74,95 @@ jobs:
           }
           EOF
 
-          echo "Request Payload:"
+          echo "========== REQUEST =========="
           cat request.json
 
-          curl -X POST "http://localhost:8080/api/review" \
+          curl -X POST "http://43.205.253.75:8080/api/review" \
             -H "Content-Type: application/json" \
-            -d @request.json
+            -d @request.json \
+            -o review-response.json
+
+          echo "========== RESPONSE =========="
+          cat review-response.json
+
+      - name: Generate Pretty JSON Report
+        shell: bash
+        run: |
+          jq '.' request.json > request-pretty.json
+          jq '.' review-response.json > review-response-pretty.json
+
+          jq -n \
+            --slurpfile request request-pretty.json \
+            --slurpfile response review-response-pretty.json \
+            '{
+              reportName: "AI Code Review Report",
+              status: "Code review completed successfully",
+              requestPayload: $request[0],
+              reviewResponse: $response[0]
+            }' > code-review-report.json
+
+          echo "========== CODE REVIEW REPORT JSON =========="
+          cat code-review-report.json
+
+      - name: Upload Code Review JSON Report
+        id: upload-json-report
+        uses: actions/upload-artifact@v7
+        with:
+          path: code-review-report.json
+          archive: false
+          retention-days: 7
+
+      - name: Publish Report To Summary
+        shell: bash
+        run: |
+          echo "# 🤖 AI Code Review Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Request" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat request-pretty.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Response" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          cat review-response-pretty.json >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "## Download JSON File" >> $GITHUB_STEP_SUMMARY
+          echo "[Download code-review-report.json](${{ steps.upload-json-report.outputs.artifact-url }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Add Review Comment To PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            const report = fs.readFileSync('code-review-report.json', 'utf8');
+            const reportJson = JSON.parse(report);
+
+            const artifactUrl = '${{ steps.upload-json-report.outputs.artifact-url }}';
+
+            const body =
+              "## 🤖 AI Code Review Report\n\n" +
+              "### Request Payload\n" +
+              "```json\n" +
+              JSON.stringify(reportJson.requestPayload, null, 2) +
+              "\n```\n\n" +
+              "### Review Response\n" +
+              "```json\n" +
+              JSON.stringify(reportJson.reviewResponse, null, 2) +
+              "\n```\n\n" +
+              "### Download JSON File\n" +
+              `[Download code-review-report.json](${artifactUrl})\n\n` +
+              "✅ Code review completed successfully.";
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: reportJson.requestPayload.prNumber,
+              body: body
+            });
